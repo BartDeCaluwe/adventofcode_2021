@@ -2,6 +2,8 @@
 
 ## Setup
 
+<!-- vim: set syntax=markdown: -->
+
 ```elixir
 Mix.install([
   {:kino, "~> 0.4.1"}

@@ -1,3 +1,5 @@
+<!-- vim: set syntax=markdown: -->
+
 # Day 9
 
 ## Setup
@@ -105,7 +107,7 @@ defmodule AdventOfCode.DayNine do
       ]
       |> Enum.reject(fn {point, _coords} -> point == @heightmap_max end)
 
-    neighbour_mapset = 
+    neighbour_mapset =
       neighbours
       |> Enum.map(fn {_point, coords} -> coords end)
       |> MapSet.new()
@@ -118,7 +120,7 @@ defmodule AdventOfCode.DayNine do
       |> Enum.reduce(basin, fn {_point, coords}, basin ->
           MapSet.put(basin, coords)
         end)
-      
+
       neighbour_mapset
       |> Enum.reduce(basin, fn {row, col}, basin ->
           get_neighbours(input, basin, row, col)
