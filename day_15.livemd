@@ -1,0 +1,126 @@
+# Day 15
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"},
+  {:libgraph, "~> 0.7"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please provide your input: ")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule AOC.DayFifteen do
+  def solve(grid) do
+    graph = Graph.new()
+
+    graph =
+      Enum.reduce(grid, graph, fn {{x, y}, _weight}, acc ->
+        edge_1 = grid[{x, y + 1}]
+        edge_2 = grid[{x + 1, y}]
+
+        cond do
+          nil != edge_1 and nil != edge_2 ->
+            Graph.add_edges(
+              acc,
+              [
+                Graph.Edge.new({x, y}, {x, y + 1}, weight: edge_1),
+                Graph.Edge.new({x, y}, {x + 1, y}, weight: edge_2)
+              ]
+            )
+
+          nil != edge_1 ->
+            Graph.add_edge(
+              acc,
+              Graph.Edge.new({x, y}, {x, y + 1}, weight: edge_1)
+            )
+
+          nil != edge_2 ->
+            Graph.add_edge(
+              acc,
+              Graph.Edge.new({x, y}, {x + 1, y}, weight: edge_2)
+            )
+
+          true ->
+            acc
+        end
+      end)
+
+    {{min, _}, {max, _}} = Enum.min_max(grid)
+
+    [_head | tail] =
+      graph
+      |> Graph.dijkstra(min, max)
+
+    tail
+    |> Enum.reduce(0, fn point, sum -> sum + grid[point] end)
+  end
+
+  def inc(x, n) do
+    cond do
+      n + x > 9 -> n + x - 9
+      :else -> n + x
+    end
+  end
+end
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+grid =
+  for {line, row} <- Enum.with_index(input),
+      {value, col} <- Enum.with_index(String.to_charlist(line)),
+      into: %{} do
+    {{col, row}, value - ?0}
+  end
+
+AOC.DayFifteen.solve(grid)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+{_, {{max, _}, _}} = Enum.min_max(grid)
+max = max + 1
+
+grid =
+  grid
+  |> Enum.reduce(%{}, fn {{x, y}, cost}, acc ->
+    Map.merge(acc, %{
+      {x, y} => cost,
+      {x + max, y} => AOC.DayFifteen.inc(cost, 1),
+      {x + max * 2, y} => AOC.DayFifteen.inc(cost, 2),
+      {x + max * 3, y} => AOC.DayFifteen.inc(cost, 3),
+      {x + max * 4, y} => AOC.DayFifteen.inc(cost, 4)
+    })
+  end)
+  |> Enum.reduce(%{}, fn {{x, y}, cost}, acc ->
+    Map.merge(acc, %{
+      {x, y} => cost,
+      {x, y + max} => AOC.DayFifteen.inc(cost, 1),
+      {x, y + max * 2} => AOC.DayFifteen.inc(cost, 2),
+      {x, y + max * 3} => AOC.DayFifteen.inc(cost, 3),
+      {x, y + max * 4} => AOC.DayFifteen.inc(cost, 4)
+    })
+  end)
+
+AOC.DayFifteen.solve(grid)
+```

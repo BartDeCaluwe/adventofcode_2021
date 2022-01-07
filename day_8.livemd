@@ -1,0 +1,215 @@
+# Day 8
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please provide your input: ")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+  |> Enum.map(&String.split(&1, " | "))
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule AdventOfCode.DayEight do
+  def solve_part_one(input) do
+    input
+    |> parse_v1()
+    |> Enum.filter(fn item ->
+      item
+      |> String.length()
+      |> simple_digit?()
+    end)
+    |> Enum.count()
+  end
+
+  defp simple_digit?(7), do: true
+  defp simple_digit?(4), do: true
+  defp simple_digit?(3), do: true
+  defp simple_digit?(2), do: true
+  defp simple_digit?(_x), do: false
+
+  defp parse_v1(input) do
+    input
+    |> Enum.flat_map(fn [_list, number] ->
+      String.split(number, " ", trim: true)
+    end)
+  end
+
+  def solve_part_two(input) do
+    input
+    |> parse()
+    |> Enum.reduce(0, fn [input, number], acc ->
+      acc + letters_to_numbers(input, number)
+    end)
+  end
+
+  defp parse(input) do
+    input
+    |> Enum.map(fn [list, number] ->
+      [String.split(list, " ", trim: true), String.split(number, " ", trim: true)]
+    end)
+  end
+
+  defp sort_by_charlist(input) do
+    input
+    |> to_charlist()
+    |> Enum.sort()
+    |> List.to_string()
+  end
+
+  defp letters_to_numbers(input, number) do
+    %{}
+    |> add_one(input)
+    |> add_four(input)
+    |> add_seven(input)
+    |> add_eight(input)
+    |> add_six_nine_zero(input)
+    |> add_five_three_two(input)
+    |> parse_number(number)
+  end
+
+  defp parse_number(map, number) do
+    number
+    |> Enum.map(fn el -> sort_by_charlist(el) end)
+    |> Enum.reduce("", fn el, acc ->
+      acc <> Integer.to_string(Map.get(map, el))
+    end)
+    |> String.to_integer()
+  end
+
+  defp add_one(map, input) do
+    one =
+      input
+      |> Enum.find("one", fn el -> String.length(el) == 2 end)
+      |> sort_by_charlist()
+
+    Map.merge(map, %{
+      one => 1
+    })
+  end
+
+  defp add_four(map, input) do
+    four =
+      input
+      |> Enum.find("four", fn el -> String.length(el) == 4 end)
+      |> sort_by_charlist()
+
+    Map.merge(map, %{
+      four => 4
+    })
+  end
+
+  defp add_seven(map, input) do
+    seven =
+      input
+      |> Enum.find("seven", fn el -> String.length(el) == 3 end)
+      |> sort_by_charlist()
+
+    Map.merge(map, %{
+      seven => 7
+    })
+  end
+
+  defp add_eight(map, input) do
+    eight =
+      input
+      |> Enum.find("eight", fn el -> String.length(el) == 7 end)
+      |> sort_by_charlist()
+
+    Map.merge(map, %{
+      eight => 8
+    })
+  end
+
+  def add_six_nine_zero(map, input) do
+    one = number_to_mapset(map, 1)
+    four = number_to_mapset(map, 4)
+
+    six_nine_zero =
+      input
+      |> Enum.filter(fn item -> item |> String.length() == 6 end)
+      |> Enum.map(fn encoded ->
+        encoded = sort_by_charlist(encoded)
+
+        charlist =
+          encoded
+          |> to_charlist()
+          |> MapSet.new()
+
+        cond do
+          MapSet.difference(one, charlist) |> MapSet.size() > 0 ->
+            %{encoded => 6}
+
+          MapSet.difference(four, charlist) |> MapSet.size() > 0 ->
+            %{encoded => 0}
+
+          true ->
+            %{encoded => 9}
+        end
+      end)
+      |> Enum.reduce(%{}, fn el, acc -> Map.merge(acc, el) end)
+
+    Map.merge(map, six_nine_zero)
+  end
+
+  def add_five_three_two(map, input) do
+    seven = number_to_mapset(map, 7)
+    nine = number_to_mapset(map, 8)
+
+    five_three_two =
+      input
+      |> Enum.filter(fn item -> item |> String.length() == 5 end)
+      |> Enum.map(fn encoded ->
+        encoded = sort_by_charlist(encoded)
+
+        charlist =
+          encoded
+          |> to_charlist()
+          |> MapSet.new()
+
+        cond do
+          MapSet.difference(charlist, nine) |> MapSet.size() == 1 ->
+            %{encoded => 2}
+
+          MapSet.difference(charlist, seven) |> MapSet.size() == 3 ->
+            %{encoded => 5}
+
+          true ->
+            %{encoded => 3}
+        end
+      end)
+      |> Enum.reduce(%{}, fn el, acc -> Map.merge(acc, el) end)
+
+    Map.merge(map, five_three_two)
+  end
+
+  defp number_to_mapset(map, target) do
+    map
+    |> Map.filter(fn {_k, v} -> v == target end)
+    |> Enum.map(fn {k, _v} -> k end)
+    |> Enum.at(0)
+    |> to_charlist()
+    |> MapSet.new()
+  end
+end
+
+# AdventOfCode.DayEight.solve_part_one(input)
+AdventOfCode.DayEight.solve_part_two(input)
+```

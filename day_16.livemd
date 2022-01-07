@@ -1,0 +1,53 @@
+# Day 16
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please provide your input: ")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.trim()
+  |> :binary.decode_hex()
+```
+
+## Part 1
+
+```elixir
+<<version::3, type::3, rest::bits>> = input
+```
+
+```elixir
+defmodule AOC.DaySixteen do
+  def solve(input) do
+    packets(input)
+  end
+
+  def packets(bitstring) do
+    packets(bitstring, [])
+  end
+
+  defp packets("", packets), do: packets |> Enum.reverse()
+
+  defp packets(bitstring, packets) do
+    {packet, rest} = packet(bitstring)
+    packets(rest, [packet | packets])
+  end
+
+  defp packet(<<version::3, type::3, rest::bits>>) do
+    packet = %{version: version, type: type}
+    {packet, rest}
+  end
+end
+```

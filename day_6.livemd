@@ -1,0 +1,99 @@
+# Day 6
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please provide your input:")
+```
+
+```elixir
+input =
+  Kino.Input.read(input)
+  |> String.split([",", "\n"], trim: true)
+  |> Enum.map(&String.to_integer(&1))
+```
+
+```elixir
+defmodule Lanternfish do
+  defstruct days: 8
+
+  @empty_pop %{
+    0 => 0,
+    1 => 0,
+    2 => 0,
+    3 => 0,
+    4 => 0,
+    5 => 0,
+    6 => 0,
+    7 => 0,
+    8 => 0
+  }
+
+  def get_empty_pop, do: @empty_pop
+
+  def cycle(%Lanternfish{days: days}) do
+    days_left = days - 1
+
+    case days_left do
+      -1 -> {:new, %Lanternfish{days: 6}, %Lanternfish{}}
+      _x -> {:ok, %Lanternfish{days: days_left}}
+    end
+  end
+
+  def cycle_v2(pop) do
+    pop
+    |> Enum.reduce(@empty_pop, fn {day, value}, new ->
+      case day do
+        0 -> Map.update!(new, 6, &(&1 + value))
+        7 -> Map.update!(new, 6, &(&1 + value))
+        _x -> Map.put(new, day - 1, value)
+      end
+    end)
+    |> Map.put(8, Map.get(pop, 0, 0))
+  end
+end
+```
+
+## Part 1
+
+```elixir
+defmodule AdventOfCode.DaySix do
+  def solve_part_one(population, days) do
+    population = Enum.map(population, &%Lanternfish{days: &1})
+
+    Enum.reduce(1..days, population, fn _day, population ->
+      Enum.reduce(population, [], fn fish, new_population ->
+        case Lanternfish.cycle(fish) do
+          {:new, fish, baby} -> [baby | [fish | new_population]]
+          {:ok, fish} -> [fish | new_population]
+        end
+      end)
+    end)
+    |> Enum.count()
+  end
+
+  def solve_part_two(input, days) do
+    population_by_freq =
+      input
+      |> parse_input()
+
+    Enum.reduce(1..days, population_by_freq, fn _day, population_by_freq ->
+      Lanternfish.cycle_v2(population_by_freq)
+    end)
+    |> Enum.reduce(0, fn {_k, val}, acc -> acc + val end)
+  end
+
+  defp parse_input(input) do
+    Map.merge(Lanternfish.get_empty_pop(), Enum.frequencies(input))
+  end
+end
+
+# AdventOfCode.DaySix.solve_part_one(input, 80)
+AdventOfCode.DaySix.solve_part_two(input, 256)
+```

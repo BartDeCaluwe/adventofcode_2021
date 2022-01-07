@@ -1,0 +1,255 @@
+# Day 10
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please provide your input: ")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+```
+
+## Part 1
+
+```elixir
+store = %{
+  ")" => 3,
+  "]" => 57,
+  "}" => 1197,
+  ">" => 25137
+}
+
+opening_symbols = ["[", "(", "{", "<"]
+closing_symbols = ["]", ")", "}", ">"]
+pairs = Enum.zip(opening_symbols, closing_symbols)
+
+"{([(<{}[<>[]}>{[]{[(<()>"
+|> String.graphemes()
+|> Enum.reduce_while([], fn sym, acc ->
+  if Enum.member?(opening_symbols, sym) do
+    {:cont, [sym | acc]}
+  else
+    [first | rest] = acc
+
+    if Enum.member?(pairs, {first, sym}) do
+      {:cont, rest}
+    else
+      {:halt, sym}
+    end
+  end
+end)
+```
+
+```elixir
+defmodule AdventOfCode.DayTen do
+  @store %{
+    ")" => 3,
+    "]" => 57,
+    "}" => 1197,
+    ">" => 25137
+  }
+  @opening_symbols ["[", "(", "{", "<"]
+  @closing_symbols ["]", ")", "}", ">"]
+  @pairs Enum.zip(opening_symbols, closing_symbols)
+
+  def solve_part_one(input) do
+    input
+    |> Enum.reduce([], fn line, acc ->
+      case parse_line(line) do
+        {:valid, _parsed} -> acc
+        {:invalid, parsed} -> [parsed | acc]
+        _ -> acc
+      end
+    end)
+    |> Enum.reduce(0, fn char, sum -> sum + Map.get(@store, char) end)
+  end
+
+  def solve_part_two(input) do
+    solution =
+      input
+      |> Enum.filter(fn line -> match?({:valid, _parsed}, parse_line(line)) end)
+      |> Enum.reduce([], fn line, acc ->
+        {_, solution} =
+          line
+          |> String.graphemes()
+          |> Enum.with_index(fn element, index -> {index + 1, element} end)
+          |> Enum.reduce({[], []}, fn {i, sym}, {acc, addition} ->
+            if Enum.member?(@opening_symbols, sym) do
+              if String.length(line) == i do
+                {acc, [sym | acc]}
+              else
+                {[sym | acc], addition}
+              end
+            else
+              [_first | rest] = acc
+
+              if String.length(line) == i do
+                {rest, rest}
+              else
+                {rest, acc}
+              end
+            end
+          end)
+
+        if is_list(solution) do
+          [solution | acc]
+        else
+          acc
+        end
+      end)
+      |> Enum.map(fn list ->
+        list
+        |> Enum.map(fn opening_symbol ->
+          case opening_symbol do
+            "{" -> "}"
+            "[" -> "]"
+            "(" -> ")"
+            "<" -> ">"
+          end
+        end)
+        |> Enum.reduce(0, fn symbol, acc ->
+          symbol_value =
+            case symbol do
+              ")" -> 1
+              "]" -> 2
+              "}" -> 3
+              ">" -> 4
+            end
+
+          acc * 5 + symbol_value
+        end)
+      end)
+      |> Enum.sort()
+
+    middle = div(Enum.count(solution), 2)
+    Enum.at(solution, middle)
+  end
+
+  defp parse_line(line) do
+    line
+    |> String.graphemes()
+    |> Enum.reduce_while([], fn sym, acc ->
+      if Enum.member?(@opening_symbols, sym) do
+        {:cont, [sym | acc]}
+      else
+        [first | rest] = acc
+
+        if Enum.member?(@pairs, {first, sym}) do
+          {:cont, rest}
+        else
+          {:halt, sym}
+        end
+      end
+    end)
+    |> then(fn parsed ->
+      if is_list(parsed) do
+        {:valid, parsed}
+      else
+        {:invalid, parsed}
+      end
+    end)
+  end
+end
+
+AdventOfCode.DayTen.solve_part_one(input)
+AdventOfCode.DayTen.solve_part_two(input)
+```
+
+## Part 2
+
+```elixir
+solution =
+  input
+  |> Enum.reduce([], fn line, acc ->
+    solution =
+      line
+      |> String.graphemes()
+      |> Enum.reduce_while([], fn sym, acc ->
+        if Enum.member?(opening_symbols, sym) do
+          {:cont, [sym | acc]}
+        else
+          [first | rest] = acc
+
+          if Enum.member?(pairs, {first, sym}) do
+            {:cont, rest}
+          else
+            {:halt, sym}
+          end
+        end
+      end)
+
+    if is_list(solution) do
+      [line | acc]
+    else
+      acc
+    end
+  end)
+  |> Enum.reduce([], fn line, acc ->
+    {_, solution} =
+      line
+      |> String.graphemes()
+      |> Enum.with_index(fn element, index -> {index + 1, element} end)
+      |> Enum.reduce({[], []}, fn {i, sym}, {acc, addition} ->
+        if Enum.member?(opening_symbols, sym) do
+          if String.length(line) == i do
+            {acc, [sym | acc]}
+          else
+            {[sym | acc], addition}
+          end
+        else
+          [_first | rest] = acc
+
+          if String.length(line) == i do
+            {rest, rest}
+          else
+            {rest, acc}
+          end
+        end
+      end)
+
+    if is_list(solution) do
+      [solution | acc]
+    else
+      acc
+    end
+  end)
+  |> Enum.map(fn list ->
+    list
+    |> Enum.map(fn opening_symbol ->
+      case opening_symbol do
+        "{" -> "}"
+        "[" -> "]"
+        "(" -> ")"
+        "<" -> ">"
+      end
+    end)
+    |> Enum.reduce(0, fn symbol, acc ->
+      symbol_value =
+        case symbol do
+          ")" -> 1
+          "]" -> 2
+          "}" -> 3
+          ">" -> 4
+        end
+
+      acc * 5 + symbol_value
+    end)
+  end)
+  |> Enum.sort()
+
+middle = div(Enum.count(solution), 2)
+
+Enum.at(solution, middle)
+```

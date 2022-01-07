@@ -1,0 +1,61 @@
+# Day 12
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please provide your input: ")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+  |> Enum.map(fn connection -> String.split(connection, "-") end)
+```
+
+## Part 1
+
+```elixir
+defmodule AdventOfCode.DayTwelve do
+  def find_paths(current, path, graph, seen) do
+    graph[current]
+    |> Enum.reject(&MapSet.member?(seen, &1))
+    |> Enum.flat_map(fn
+      "end" ->
+        [["end" | path]]
+
+      current ->
+        find_paths(
+          current,
+          [current | path],
+          graph,
+          if(lower?(current), do: MapSet.put(seen, current), else: seen)
+        )
+    end)
+  end
+
+  def lower?(string), do: string == String.downcase(string, :ascii)
+
+  def graph(paths) do
+    paths
+    |> Enum.reduce(%{}, fn [node_1, node_2], map ->
+      map
+      |> Map.update(node_1, MapSet.new([node_2]), &MapSet.put(&1, node_2))
+      |> Map.update(node_2, MapSet.new([node_1]), &MapSet.put(&1, node_1))
+    end)
+    |> IO.inspect()
+  end
+end
+
+graph = AdventOfCode.DayTwelve.graph(input)
+
+AdventOfCode.DayTwelve.find_paths("start", ["start"], graph, MapSet.new(["start"]))
+|> Enum.count()
+```

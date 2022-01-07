@@ -1,0 +1,191 @@
+# Day 9
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please provide your input: ")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&(String.graphemes(&1) |> Enum.map(fn str -> String.to_integer(str) end)))
+```
+
+## Part 1
+
+```elixir
+defmodule AdventOfCode.DayNine do
+  @heightmap_max 9
+
+  def solve_part_one(input) do
+    input
+    |> solve()
+    |> Enum.map(&risk_level/1)
+    |> Enum.sum()
+  end
+
+  defp solve(input) do
+    input
+    |> Enum.with_index(fn el, index -> {el, index} end)
+    |> Enum.reduce([], fn {row, row_index}, acc ->
+      row
+      |> Enum.with_index(fn el, index -> {el, index} end)
+      |> Enum.reduce(acc, fn {number, col_index}, acc ->
+        cond do
+          number == @heightmap_max ->
+            acc
+
+          is_lowest_point(input, number, row_index, col_index) ->
+            [number | acc]
+
+          true ->
+            acc
+        end
+      end)
+    end)
+  end
+
+  def solve_part_two(input) do
+    input
+    |> solve_v2()
+  end
+
+  defp solve_v2(input) do
+    input
+    |> Enum.with_index(fn el, index -> {el, index} end)
+    |> Enum.reduce([], fn {row, row_index}, acc ->
+      row
+      |> Enum.with_index(fn el, index -> {el, index} end)
+      |> Enum.reduce(acc, fn {number, col_index}, acc ->
+        cond do
+          number == @heightmap_max ->
+            acc
+
+          is_lowest_point(input, number, row_index, col_index) ->
+            basin_size = get_basin_size(input, row_index, col_index)
+            [basin_size | acc]
+
+          true ->
+            acc
+        end
+      end)
+    end)
+    |> Enum.sort()
+    |> Enum.reverse()
+    |> Enum.slice(0..2)
+    |> Enum.product()
+  en
+
+  defp get_basin_size(input, row, col) do
+    basin = MapSet.new([{row, col}])
+
+    input
+    |> get_neighbours(basin, row, col)
+    |> MapSet.size()
+  end
+
+  defp get_neighbours(input, basin, row, col) do
+    neighbours =
+      [
+        get_top(input, row, col),
+        get_right(input, row, col),
+        get_left(input, row, col),
+        get_bottom(input, row, col)
+      ]
+      |> Enum.reject(fn {point, _coords} -> point == @heightmap_max end)
+
+    neighbour_mapset = 
+      neighbours
+      |> Enum.map(fn {_point, coords} -> coords end)
+      |> MapSet.new()
+      |> MapSet.difference(basin)
+
+    if MapSet.size(neighbour_mapset) == 0 do
+      basin
+    else
+      basin = neighbours
+      |> Enum.reduce(basin, fn {_point, coords}, basin ->
+          MapSet.put(basin, coords)
+        end)
+      
+      neighbour_mapset
+      |> Enum.reduce(basin, fn {row, col}, basin ->
+          get_neighbours(input, basin, row, col)
+      end)
+    end
+  end
+
+  defp get_top(input, row_index, col_index) do
+    row_index = row_index - 1
+    top = input |> Enum.at(row_index)
+
+    if row_index == -1 || top == nil do
+      {@heightmap_max, {row_index, col_index}}
+    else
+      {Enum.at(top, col_index, @heightmap_max), {row_index, col_index}}
+    end
+  end
+
+  defp get_bottom(input, row_index, col_index) do
+    row_index = row_index + 1
+    bottom = input |> Enum.at(row_index)
+
+    if bottom == nil do
+      {@heightmap_max, {row_index, col_index}}
+    else
+      {Enum.at(bottom, col_index, @heightmap_max), {row_index, col_index}}
+    end
+  end
+
+  defp get_left(input, row_index, col_index) do
+    col_index = col_index - 1
+
+    if col_index == -1 do
+      {@heightmap_max, {row_index, col_index}}
+    else
+      point =
+        input
+        |> Enum.at(row_index)
+        |> Enum.at(col_index, @heightmap_max)
+
+      {point, {row_index, col_index}}
+    end
+  end
+
+  defp get_right(input, row_index, col_index) do
+    col_index = col_index + 1
+
+    point =
+      input
+      |> Enum.at(row_index)
+      |> Enum.at(col_index, @heightmap_max)
+
+    {point, {row_index, col_index}}
+  end
+
+  defp is_lowest_point(input, number, row_index, col_index) do
+    {top, _} = get_top(input, row_index, col_index)
+    {bottom, _} = get_bottom(input, row_index, col_index)
+    {left, _} = get_left(input, row_index, col_index)
+    {right, _} = get_right(input, row_index, col_index)
+
+    Enum.all?([top, left, right, bottom], &(&1 > number))
+  end
+
+  defp risk_level(point), do: 1 + point
+end
+
+# AdventOfCode.DayNine.solve_part_one(input)
+AdventOfCode.DayNine.solve_part_two(input)
+```

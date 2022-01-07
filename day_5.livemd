@@ -1,0 +1,82 @@
+# Day 5
+
+## Part 1
+
+<!-- livebook:{"livebook_object":"cell_input","name":"input","type":"textarea","value":"0,9 -> 5,9\n8,0 -> 0,8\n9,4 -> 3,4\n2,2 -> 2,1\n7,0 -> 7,4\n6,4 -> 2,0\n0,9 -> 2,9\n3,4 -> 1,4\n0,0 -> 8,8\n5,5 -> 8,2"} -->
+
+```elixir
+input =
+  IO.getn("input: ", 1_000_000)
+  |> String.split("\n", trim: true)
+```
+
+```elixir
+defmodule AdventOfCode.DayFive do
+  def solve_part_one(input) do
+    input
+    |> parse()
+    |> Enum.filter(fn [first, second] ->
+      elem(first, 0) == elem(second, 0) ||
+        elem(first, 1) == elem(second, 1)
+    end)
+    |> solve()
+  end
+
+  def solve_part_two(input) do
+    input
+    |> parse()
+    |> solve()
+  end
+
+  defp parse(input) do
+    input
+    |> Enum.map(fn pair ->
+      [first, second] = String.split(pair, " -> ")
+
+      [x1, y1] =
+        String.split(first, ",")
+        |> Enum.map(fn el ->
+          {number, _rest} = Integer.parse(el)
+          number
+        end)
+
+      [x2, y2] =
+        String.split(second, ",")
+        |> Enum.map(fn el ->
+          {number, _rest} = Integer.parse(el)
+          number
+        end)
+
+      [{x1, y1}, {x2, y2}]
+    end)
+  end
+
+  defp solve(input) do
+    input
+    |> Enum.map(fn [{x1, y1}, {x2, y2}] ->
+      cond do
+        x1 == x2 ->
+          y1..y2 |> Enum.map(fn el -> {x1, el} end)
+
+        y1 == y2 ->
+          x1..x2 |> Enum.map(fn el -> {el, y1} end)
+
+        true ->
+          Enum.zip(x1..x2, y1..y2)
+      end
+    end)
+    |> List.flatten()
+    |> Enum.frequencies()
+    |> Enum.filter(fn {_pair, freq} -> freq >= 2 end)
+    |> Enum.count()
+  end
+end
+
+AdventOfCode.DayFive.solve_part_one(input)
+```
+
+## Part 2
+
+```elixir
+AdventOfCode.DayFive.solve_part_two(input)
+```

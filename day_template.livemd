@@ -1,0 +1,25 @@
+# Day
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please provide your input: ")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+```
+
+## Part 1
+
+```elixir
+
+```

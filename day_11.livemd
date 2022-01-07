@@ -1,0 +1,161 @@
+# Day 11
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please provide your input: ")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+lines =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n")
+
+grid =
+  for {line, row} <- Enum.with_index(lines),
+      {level, col} <- Enum.with_index(String.to_charlist(line)),
+      into: %{} do
+    {{row, col}, %{level: level - ?0, state: :not_flashed}}
+  end
+```
+
+## Part 1
+
+```elixir
+defmodule AdventOfCode.DayEleven do
+  @baseline 0
+  @flash_level 9
+  @octopodes 100
+
+  def solve_part_one(grid) do
+    {_grid, flashes} =
+      0..99
+      |> Enum.reduce({grid, 0}, fn _step, {grid, flashes} ->
+        grid =
+          grid
+          |> increase_all_levels()
+          |> flash()
+
+        flashes =
+          flashes +
+            Enum.count(grid, fn {coord, %{level: _l, state: state}} -> state == :flashed end)
+
+        grid = grid |> reset_all()
+
+        {grid, flashes}
+      end)
+
+    flashes
+  end
+
+  def solve_part_two(grid) do
+    Stream.iterate(1, &(&1 + 1))
+    |> Enum.reduce_while(grid, fn step, grid ->
+      grid =
+        grid
+        |> increase_all_levels()
+        |> flash()
+        |> reset_all()
+
+      case Enum.count(grid, fn {_c, %{level: level, state: _state}} -> level == @baseline end) do
+        @octopodes -> {:halt, step}
+        _ -> {:cont, grid}
+      end
+    end)
+
+    # get_synchro_step(grid, 0)
+  end
+
+  def get_synchro_step(grid, step) do
+    grid =
+      grid
+      |> increase_all_levels()
+      |> flash()
+      |> reset_all()
+
+    case Enum.count(grid, fn {_c, %{level: level, state: _state}} -> level == @baseline end) do
+      @octopodes -> step
+      _ -> get_synchro_step(grid, step + 1)
+    end
+  end
+
+  defp increase_all_levels(grid) do
+    grid
+    |> Enum.map(fn {coords, octo} -> {coords, increase_level(octo)} end)
+    |> Enum.into(%{})
+  end
+
+  defp increase_level(octo) do
+    Map.update!(octo, :level, &(&1 + 1))
+  end
+
+  defp about_to_flash(grid) do
+    about_to_flash =
+      grid
+      |> Enum.reject(fn {_c, %{level: _level, state: state}} -> state == :flashed end)
+      |> Enum.filter(fn {_c, %{level: level, state: _state}} -> level > @flash_level end)
+  end
+
+  defp flash(grid) do
+    about_to_flash = about_to_flash(grid)
+
+    if Enum.count(about_to_flash) == 0 do
+      grid
+    else
+      about_to_flash
+      |> Enum.reduce(grid, fn {{x, y} = coords, octo}, grid ->
+        neighbours =
+          grid
+          |> Enum.filter(fn {coords, %{}} ->
+            coords in [
+              {x + 1, y},
+              {x + 1, y + 1},
+              {x + 1, y - 1},
+              {x - 1, y},
+              {x - 1, y + 1},
+              {x - 1, y - 1},
+              {x, y + 1},
+              {x, y - 1}
+            ]
+          end)
+          |> increase_all_levels()
+
+        grid
+        |> set_flashed(coords, octo)
+        |> Map.merge(neighbours)
+      end)
+      |> flash()
+    end
+  end
+
+  defp set_flashed(grid, coords, octo) do
+    octo = Map.put(octo, :state, :flashed)
+    Map.replace(grid, coords, octo)
+  end
+
+  defp reset_all(grid) do
+    grid
+    |> Enum.map(fn {coords, octo} ->
+      if Map.get(octo, :state) == :flashed do
+        octo = %{level: @baseline, state: :not_flashed}
+        {coords, octo}
+      else
+        {coords, octo}
+      end
+    end)
+    |> Enum.into(%{})
+  end
+end
+
+# AdventOfCode.DayEleven.solve_part_one(grid)
+AdventOfCode.DayEleven.solve_part_two(grid)
+```

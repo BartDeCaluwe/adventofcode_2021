@@ -1,0 +1,116 @@
+# Day 13
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please provide your input: ")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+[dots, instructions] =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n\n")
+
+dots =
+  dots
+  |> String.split("\n")
+  |> Enum.map(fn pair ->
+    [x, y] =
+      pair
+      |> String.split(",")
+      |> Enum.map(&String.to_integer(&1))
+
+    {x, y}
+  end)
+  |> MapSet.new()
+
+instructions =
+  instructions
+  |> String.split("\n")
+  |> Enum.map(fn text ->
+    [_fold, _along, instruction] = String.split(text, " ")
+    [axis, line] = instruction |> String.split("=")
+    {axis, String.to_integer(line)}
+  end)
+```
+
+## Part 1
+
+```elixir
+instructions
+|> Enum.take(1)
+|> Enum.reduce(dots, fn {axis, line}, dots ->
+  case axis do
+    "y" ->
+      MapSet.new(dots, fn {x, y} ->
+        if y < line do
+          {x, y}
+        else
+          {x, 2 * line - y}
+        end
+      end)
+
+    "x" ->
+      MapSet.new(dots, fn {x, y} ->
+        if x < line do
+          {x, y}
+        else
+          {2 * line - x, y}
+        end
+      end)
+  end
+end)
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+solution =
+  instructions
+  |> Enum.reduce(dots, fn {axis, line}, dots ->
+    case axis do
+      "y" ->
+        MapSet.new(dots, fn {x, y} ->
+          if y < line do
+            {x, y}
+          else
+            {x, 2 * line - y}
+          end
+        end)
+
+      "x" ->
+        MapSet.new(dots, fn {x, y} ->
+          if x < line do
+            {x, y}
+          else
+            {2 * line - x, y}
+          end
+        end)
+    end
+  end)
+
+{max_x, max_y} = Enum.max(solution)
+
+for y <- 0..(max_y + 1) do
+  line =
+    for x <- 0..(max_x + 1) do
+      if MapSet.member?(solution, {x, y}) do
+        "#"
+      else
+        "."
+      end
+    end
+
+  IO.puts(line)
+end
+```

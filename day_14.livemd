@@ -1,0 +1,139 @@
+# Day 14
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Please provide your input: ")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+[template, rules] =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n\n")
+
+rules =
+  rules
+  |> String.split("\n")
+  |> Enum.map(fn rule ->
+    [pair, element] = String.split(rule, " -> ")
+    {pair, element}
+  end)
+  |> Enum.reduce(%{}, fn {key, value}, acc ->
+    Map.put(acc, key, value)
+  end)
+```
+
+## Part 1
+
+```elixir
+defmodule AOC.DayFourteen do
+  def solve(template, rules) do
+    {min, max} =
+      0..9
+      |> Enum.reduce(template, fn _step, template ->
+        polymerize(template, rules)
+      end)
+      |> String.graphemes()
+      |> Enum.frequencies()
+      |> Enum.map(fn {_key, value} ->
+        value
+      end)
+      |> Enum.min_max()
+
+    max - min
+  end
+
+  def polymerize(template, rules) do
+    polymerize(String.graphemes(template), rules, [])
+  end
+
+  def polymerize([first, second], rules, new) do
+    key = first <> second
+    to_insert = first <> rules[key] <> second
+
+    [to_insert | new]
+    |> Enum.reverse()
+    |> Enum.join()
+  end
+
+  def polymerize([first | [second | _rest] = rest], rules, new) do
+    key = first <> second
+    to_insert = first <> rules[key]
+    polymerize(rest, rules, [to_insert | new])
+  end
+end
+
+AOC.DayFourteen.solve(template, rules)
+```
+
+## Part 2
+
+```elixir
+defmodule AOC.DayFourteen.Part2 do
+  def solve(template, rules) do
+    parsed = template |> parse()
+
+    initial_count = String.graphemes(template) |> Enum.frequencies()
+
+    {_polymer, count} =
+      1..40
+      |> Enum.reduce({parsed, initial_count}, fn _step, {template, count} ->
+        polymerize(template, rules, count)
+      end)
+
+    {min, max} = count |> Enum.map(fn {_k, v} -> v end) |> Enum.min_max()
+    max - min
+  end
+
+  def parse(template) do
+    template
+    |> String.graphemes()
+    |> parse([])
+  end
+
+  def parse([first, second], acc) do
+    [{first <> second, {first, second}} | acc]
+    |> Enum.frequencies()
+  end
+
+  def parse([first | [second | _rest] = rest], acc) do
+    parse(rest, [{first <> second, {first, second}} | acc])
+  end
+
+  def polymerize(template, rules, count) do
+    Enum.reduce(template, {%{}, count}, fn {{key, {first, second}}, amount}, {template, count} ->
+      element = rules[key]
+
+      first_new = {first <> element, {first, element}}
+      second_new = {element <> second, {element, second}}
+
+      template =
+        template
+        |> put_or_update(first_new, amount)
+        |> put_or_update(second_new, amount)
+
+      count = put_or_update(count, element, amount)
+
+      {template, count}
+    end)
+  end
+
+  def put_or_update(map, key, value) do
+    case map[key] do
+      nil -> Map.put(map, key, value)
+      _x -> Map.update!(map, key, &(&1 + value))
+    end
+  end
+end
+
+AOC.DayFourteen.Part2.solve(template, rules)
+```
